@@ -4,13 +4,25 @@ import time
 from imutils import resize
 import csv
 
+kernelOP = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+kernelCL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+cap = cv2.VideoCapture('videos/dulces1.avi')
+fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 
+
+# Write columns in the x_values.csv
+# Format [R:Int, G:Int, B:Int, Area:Float]
 def write_col_x(rowcita):
     with open('x_values.csv', 'a', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(rowcita)
 
+# Write columns in the y_values_csv
+# Format [y:Int]
+# The values of y correspond to a label
+# 0 = chocorramo, 1 = jet_azul, 2 = jumbo_flow_blanca, 3 = jumbo_naranja, 4 = jumbo_roja
+# 5 = fruna_verde, 6 = fruna_naranja, 7 = fruna_roja, 8 = fruna_amarilla
 def write_col_y(label):
     with open('y_values.csv', 'a', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=' ',
@@ -47,36 +59,34 @@ def getRGB(image):
 
     return [int(rprom/cont),int(gprom/cont),int(bprom/cont)]
 
+def get_area_and_write():
+    while(True): 
+        ret, frame = cap.read()
+        image = frame
+        image = resize(image, width=500)
+        image = image[50:3500, 170:700]
+        image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 
-kernelOP = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-kernelCL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-cap = cv2.VideoCapture('videos/fruna_amarilla_1.avi')
-fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
-while(True): 
-    ret, frame = cap.read()
-    image = frame
-    image = resize(image, width=500)
-    image = image[50:3500, 170:700]
-    image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        thresh = fgbg.apply(image)
+        cv2.imshow('No Background', thresh)
 
-    thresh = fgbg.apply(image)
-    cv2.imshow('No Background', thresh)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernelOP, iterations=2)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernelCL, iterations=2)
+        im, contours, hierarchy= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    
+        if len(contours) > 0 and cv2.contourArea(contours[0]) > 10000 and cv2.contourArea(contours[0]) < 30000:
+            area = cv2.contourArea(contours[0])
+            rgb  = getRGB(frame)
+            print('Area: ', area)
+            print('Color: ', rgb)
+            write_col_x(rgb + [area])
+            write_col_y('8')
+            cv2.drawContours(image, contours, -1, (0,255,0), 2)
+        cv2.imshow("objects Found", image)
+        cv2.imshow('Thresh', thresh)
+        time.sleep(0.01)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
 
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernelOP, iterations=2)
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernelCL, iterations=2)
-    im, contours, hierarchy= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    
-    if len(contours) > 0 and cv2.contourArea(contours[0]) > 10000 and cv2.contourArea(contours[0]) < 30000:
-        area = cv2.contourArea(contours[0])
-        rgb  = getRGB(frame)
-        print('Area: ', area)
-        print('Color: ', rgb)
-        write_col_x(rgb + [area])
-        write_col_y('8')
-        cv2.drawContours(image, contours, -1, (0,255,0), 2)
-    cv2.imshow("objects Found", image)
-    cv2.imshow('Thresh', thresh)
-    time.sleep(0.01)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-cap.release()
-cv2.destroyAllWindows()
+get_area_and_write()
