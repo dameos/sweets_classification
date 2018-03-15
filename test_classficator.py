@@ -1,26 +1,21 @@
-import cv2
-import numpy as np
-import time 
+from sklearn.ensemble import RandomForestClassifier
 from imutils import resize
-import csv
+import pandas as pd
+import numpy as np
+import time
+import cv2
 
 
-def write_col_x(rowcita):
-    with open('x_values.csv', 'a', newline='') as csvfile:
-        spamwriter = csv.writer(csvfile, delimiter=',',
-                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(rowcita)
+dataX  = pd.read_csv('./dataset/x_values.csv')
+y = pd.read_csv('./dataset/y_values.csv')
 
-def write_col_y(label):
-    with open('y_values.csv', 'a', newline='') as csvfile:
-        spamwriter = csv.writer(csvfile, delimiter=' ',
-                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(label)
+clf = RandomForestClassifier(n_jobs=2, random_state=0)
+clf.fit(dataX, np.ravel(y))
 
 def getRGB(image):
     kernelOP = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
     kernelCL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11,11))
-    img1 = cv2.imread("videos/banda.jpeg")
+    img1 = cv2.imread("dataset/banda.jpeg")
     img1 = cv2.morphologyEx(img1, cv2.MORPH_OPEN, kernelOP, iterations=2)
     img2 = image
     img2 = cv2.morphologyEx(img2, cv2.MORPH_CLOSE, kernelCL, iterations=2)
@@ -50,13 +45,16 @@ def getRGB(image):
 
 kernelOP = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 kernelCL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-cap = cv2.VideoCapture('videos/fruna_amarilla_1.avi')
+cap = cv2.VideoCapture(0)
+cap.set(3,640)
+cap.set(4,480)
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 while(True): 
     ret, frame = cap.read()
+    frame = frame[::, 95:525]
     image = frame
     image = resize(image, width=500)
-    image = image[50:3500, 170:700]
+    image = image[50:3500, 75:480]
     image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 
     thresh = fgbg.apply(image)
@@ -65,13 +63,13 @@ while(True):
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernelOP, iterations=2)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernelCL, iterations=2)
     im, contours, hierarchy= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    
-    if len(contours) > 0 and cv2.contourArea(contours[0]) > 10000 and cv2.contourArea(contours[0]) < 30000:
+    if len(contours) > 0 and cv2.contourArea(contours[0]) > 10000 and cv2.contourArea(contours[0]) < 80000:
         area = cv2.contourArea(contours[0])
         rgb  = getRGB(frame)
         print('Area: ', area)
         print('Color: ', rgb)
-        write_col_x(rgb + [area])
-        write_col_y('8')
+        data = rgb + [area]
+        print(clf.predict([data]))
         cv2.drawContours(image, contours, -1, (0,255,0), 2)
     cv2.imshow("objects Found", image)
     cv2.imshow('Thresh', thresh)

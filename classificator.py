@@ -8,4 +8,4 @@ y = pd.read_csv('./dataset/y_values.csv')
 clf = RandomForestClassifier(n_jobs=2, random_state=0)
 clf.fit(dataX, np.ravel(y))
 
-print(clf.predict(dataX))
+
