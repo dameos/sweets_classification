@@ -45,11 +45,11 @@ def getRGB(image):
 
 kernelOP = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 kernelCL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("dulces1.avi")
 cap.set(3,640)
 cap.set(4,480)
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
-while(True): 
+while(True):
     ret, frame = cap.read()
     frame = frame[::, 95:525]
     image = frame
@@ -62,15 +62,22 @@ while(True):
 
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernelOP, iterations=2)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernelCL, iterations=2)
-    im, contours, hierarchy= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    
+    im, contours, hierarchy= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) > 0 and cv2.contourArea(contours[0]) > 10000 and cv2.contourArea(contours[0]) < 80000:
-        area = cv2.contourArea(contours[0])
-        rgb  = getRGB(frame)
-        print('Area: ', area)
-        print('Color: ', rgb)
-        data = rgb + [area]
-        print(clf.predict([data]))
-        cv2.drawContours(image, contours, -1, (0,255,0), 2)
+        rect = cv2.minAreaRect(contours[0])
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        cv2.drawContours(image,[box],0,(0,0,255),2)
+        # area = rect([])
+        if rect[0][1] > 250 and rect[0][1] < 350:
+            area = rect[1][0] * rect[1][1]
+            # rgb  = getRGB(frame)
+            print('Area: ', area)
+            # print('Color: ', rgb)
+            # data = rgb + [area]
+            # print(clf.predict([data]))
+        # area = cv2.contourArea(contours[0])
+        # cv2.drawContours(image, contours, -1, (0,255,0), 2)
     cv2.imshow("objects Found", image)
     cv2.imshow('Thresh', thresh)
     time.sleep(0.01)
