@@ -45,9 +45,12 @@ def getRGB(image):
 
 kernelOP = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 kernelCL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-cap = cv2.VideoCapture("dulces1.avi")
+cap = cv2.VideoCapture(1)
 cap.set(3,640)
 cap.set(4,480)
+cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+cap.set(cv2.CAP_PROP_EXPOSURE , 0.4)
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 while(True):
     ret, frame = cap.read()
@@ -68,14 +71,13 @@ while(True):
         box = cv2.boxPoints(rect)
         box = np.int0(box)
         cv2.drawContours(image,[box],0,(0,0,255),2)
-        # area = rect([])
         if rect[0][1] > 250 and rect[0][1] < 350:
             area = rect[1][0] * rect[1][1]
-            # rgb  = getRGB(frame)
+            rgb  = getRGB(frame)
             print('Area: ', area)
-            # print('Color: ', rgb)
-            # data = rgb + [area]
-            # print(clf.predict([data]))
+            print('Color: ', rgb)
+            data = rgb + [area]
+            print(clf.predict([data]))
         # area = cv2.contourArea(contours[0])
         # cv2.drawContours(image, contours, -1, (0,255,0), 2)
     cv2.imshow("objects Found", image)
